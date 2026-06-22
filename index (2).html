@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>信用卡分期計算器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 font-sans p-4 md:p-8 flex items-start justify-center">
+
+    <div class="max-w-3xl w-full bg-white rounded-2xl shadow-xl overflow-hidden mt-2 md:mt-8 mb-10">
+        <!-- 頂部標題 -->
+        <div class="bg-indigo-600 p-6 text-white text-center relative">
+            <h1 class="text-2xl font-bold flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                信用卡分期雲端計算器
+            </h1>
+            <p class="text-indigo-200 mt-1 text-sm">新增多筆分期紀錄，自動計算每月應繳總額</p>
+        </div>
+
+        <div class="p-6 md:p-8 space-y-5">
+            <!-- 錯誤提示區塊 -->
+            <div id="errorMsg" class="hidden bg-red-50 text-red-600 p-3 rounded-lg text-sm font-medium border border-red-200">
+                請填寫正確的金額與期數。
+            </div>
+
+            <!-- 輸入表單 -->
+            <div class="space-y-4">
+                <!-- 選擇記錄模式 -->
+                <div class="flex bg-slate-100 p-1.5 rounded-xl mb-2">
+                    <button id="modeNewBtn" onclick="setMode('new')" class="flex-1 py-2.5 text-sm font-bold rounded-lg bg-white shadow-sm text-indigo-600 transition-all">輸入總金額 (完整分期)</button>
+                    <button id="modeExtBtn" onclick="setMode('existing')" class="flex-1 py-2.5 text-sm font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all">輸入月繳金 (補登舊紀錄)</button>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1" for="itemName">消費名稱 (選填)</label>
+                    <input type="text" id="itemName" placeholder="例如: iPhone 15、出國機票" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-lg font-medium">
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1" id="lblStartMonth">首期帳單月份</label>
+                        <input type="month" id="startMonth" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-lg font-medium">
+                    </div>
+                    
+                    <!-- 模式1: 輸入總金額 -->
+                    <div id="divAmount">
+                        <label class="block text-sm font-semibold text-slate-700 mb-1" for="amount">刷卡總金額 (元)</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+                            <input type="number" id="amount" placeholder="例如: 50000" class="w-full pl-8 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-lg font-medium">
+                        </div>
+                    </div>
+
+                    <!-- 模式2: 輸入月繳金 -->
+                    <div id="divMonthlyAmount" class="hidden">
+                        <label class="block text-sm font-semibold text-slate-700 mb-1" for="monthlyAmount">每月繳款金額 (元)</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+                            <input type="number" id="monthlyAmount" placeholder="例如: 3500" class="w-full pl-8 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-lg font-medium">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 模式1的細節 -->
+                <div class="grid grid-cols-2 gap-4" id="divNewDetails">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1" for="months">分期期數 (月)</label>
+                        <input type="number" id="months" placeholder="例如: 12" value="12" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-lg font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1" for="rate">年利率 (%)</label>
+                        <div class="relative">
+                            <input type="number" id="rate" placeholder="0" value="0" step="0.1" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-lg font-medium">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 模式2的細節 -->
+                <div class="grid grid-cols-2 gap-4 hidden" id="divExtDetails">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1" for="totalMonthsExt">總期數 (月)</label>
+                        <input type="number" id="totalMonthsExt" placeholder="例如: 12" value="12" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-lg font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1" for="remainingMonthsExt">剩餘期數 (月)</label>
+                        <input type="number" id="remainingMonthsExt" placeholder="例如: 6" value="6" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-lg font-medium">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 計算按鈕 -->
+            <button onclick="addRecord()" id="btnAdd" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition-colors shadow-lg shadow-indigo-200 flex justify-center items-center gap-2 text-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                加入累計清單
+            </button>
+        </div>
+
+        <!-- 結果顯示區塊 -->
+        <div id="resultArea" class="hidden border-t border-slate-100 bg-slate-50 p-6 md:p-8">
+            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                已記錄的消費 (雲端同步)
+            </h3>
+            
+            <!-- 紀錄清單 -->
+            <div id="recordsList" class="space-y-3 mb-6">
+                <!-- JS 生成 -->
+            </div>
+
+            <!-- 分頁導覽列 -->
+            <div class="flex border-b border-slate-200 mb-6">
+                <button id="btnTabAll" onclick="switchTab('all')" class="flex-1 py-3 text-center font-bold text-indigo-600 border-b-2 border-indigo-600 transition-colors">
+                    所有月份總表
+                </button>
+                <button id="btnTabQuery" onclick="switchTab('query')" class="flex-1 py-3 text-center font-bold text-slate-500 border-b-2 border-transparent hover:text-indigo-500 transition-colors">
+                    查詢單月明細
+                </button>
+            </div>
+
+            <!-- 分頁 1：所有月份累計 -->
+            <div id="tabAll" class="space-y-6">
+                <!-- 摘要卡片 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                        <div class="text-xs text-slate-500 font-medium mb-1">剩餘待繳總額 (累計)</div>
+                        <div class="text-2xl font-bold text-indigo-600" id="resTotal">0</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                        <div class="text-xs text-slate-500 font-medium mb-1">最長需繳納期數</div>
+                        <div class="text-2xl font-bold text-slate-700"><span id="resMaxMonths">0</span> 個月</div>
+                    </div>
+                </div>
+
+                <!-- 累計明細表 -->
+                <div class="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm max-h-[400px] overflow-y-auto">
+                    <table class="w-full text-sm text-right">
+                        <thead class="text-xs text-slate-500 uppercase bg-slate-100 sticky top-0">
+                            <tr>
+                                <th class="px-4 py-3 text-center">繳款月份</th>
+                                <th class="px-4 py-3 font-bold text-indigo-600">本月應繳總額</th>
+                                <th class="px-4 py-3 text-slate-400">各筆明細</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scheduleBody" class="divide-y divide-slate-100">
+                            <!-- 明細內容由 JS 生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 分頁 2：單月查詢區塊 -->
+            <div id="tabQuery" class="hidden p-5 md:p-6 bg-indigo-50 border border-indigo-100 rounded-xl shadow-sm">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 border-b border-indigo-100 pb-4">
+                    <h4 class="font-bold text-indigo-900 flex items-center gap-2 text-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        查詢特定月份
+                    </h4>
+                    <input type="month" id="queryMonthInput" onchange="renderQuery()" class="px-4 py-2 bg-white border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-slate-700 shadow-sm cursor-pointer">
+                </div>
+                <div id="queryResultArea">
+                    <!-- 由 JS 渲染查詢結果 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 您專屬的 Google Sheets Web App URL
+        const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyAGmCIago7zpsVHp9hneB4NiYRYgpI-aLru9hb8RWmKaooE3FvSzXqZKYllkkbymD4-Q/exec";
+
+        // 全域變數
+        window.records = [];
+        window.currentTab = 'all';
+        window.inputMode = 'new'; 
+
+        // 1. 初始化載入 LocalStorage 資料
+        function loadData() {
+            const saved = localStorage.getItem('installment_records');
+            if (saved) {
+                window.records = JSON.parse(saved);
+                window.records.sort((a, b) => a.startIndex - b.startIndex);
+            }
+            window.render();
+        }
+
+        // 儲存至 LocalStorage
+        function saveData() {
+            localStorage.setItem('installment_records', JSON.stringify(window.records));
+        }
+
+        // 2. 新增紀錄
+        window.addRecord = function() {
+            const nameInput = document.getElementById('itemName').value;
+            const startMonthStr = document.getElementById('startMonth').value;
+            const name = nameInput.trim() || `消費項目`;
+            const errorMsg = document.getElementById('errorMsg');
+
+            if (!startMonthStr) {
+                errorMsg.innerText = '請選擇帳單月份。';
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            const startIndex = dateToIndex(startMonthStr);
+            let record = {
+                id: Date.now().toString(), // 產生唯一 ID
+                name: name,
+                startMonth: startMonthStr,
+                startIndex: startIndex,
+                mode: window.inputMode,
+                createdAt: new Date().toLocaleString() // 加上時間字串方便閱讀
+            };
+
+            if (window.inputMode === 'new') {
+                const amount = parseFloat(document.getElementById('amount').value);
+                const months = parseInt(document.getElementById('months').value);
+                const annualRate = parseFloat(document.getElementById('rate').value) || 0;
+
+                if (!amount || isNaN(amount) || amount <= 0 || !months || isNaN(months) || months <= 0 || annualRate < 0) {
+                    errorMsg.innerText = '請填寫正確的總金額與期數。';
+                    errorMsg.classList.remove('hidden');
+                    return;
+                }
+                
+                errorMsg.classList.add('hidden');
+                const monthlyRate = annualRate / 100 / 12;
+                let monthlyPayment = 0;
+
+                if (monthlyRate === 0) {
+                    monthlyPayment = amount / months;
+                } else {
+                    const factor = Math.pow(1 + monthlyRate, months);
+                    monthlyPayment = amount * monthlyRate * factor / (factor - 1);
+                }
+
+                const roundedMonthlyPayment = Math.round(monthlyPayment);
+                let remainingPrincipal = amount;
+                let schedule = [];
+                let totalInterest = 0;
+                
+                for (let i = 1; i <= months; i++) {
+                    let currentInterest = remainingPrincipal * monthlyRate;
+                    let currentPrincipal = 0;
+                    let currentPayment = 0;
+
+                    if (i === months) {
+                        currentPrincipal = remainingPrincipal;
+                        currentInterest = Math.round(currentInterest);
+                        currentPayment = currentPrincipal + currentInterest;
+                        remainingPrincipal = 0;
+                    } else {
+                        currentInterest = Math.round(currentInterest);
+                        currentPayment = roundedMonthlyPayment;
+                        currentPrincipal = currentPayment - currentInterest;
+                        remainingPrincipal -= currentPrincipal;
+                    }
+                    totalInterest += currentInterest;
+                    schedule.push(currentPayment);
+                }
+
+                record.amount = amount;
+                record.months = months;
+                record.remainingMonths = months;
+                record.periodOffset = 0;
+                record.totalPaid = amount + totalInterest;
+                record.monthlyAmount = schedule[0];
+                record.schedule = schedule;
+
+            } else {
+                const monthlyAmount = parseFloat(document.getElementById('monthlyAmount').value);
+                const totalMonthsExt = parseInt(document.getElementById('totalMonthsExt').value);
+                const remainingMonthsExt = parseInt(document.getElementById('remainingMonthsExt').value);
+
+                if (!monthlyAmount || isNaN(monthlyAmount) || monthlyAmount <= 0 || 
+                    !totalMonthsExt || isNaN(totalMonthsExt) || totalMonthsExt <= 0 || 
+                    !remainingMonthsExt || isNaN(remainingMonthsExt) || remainingMonthsExt <= 0 || 
+                    remainingMonthsExt > totalMonthsExt) {
+                    errorMsg.innerText = '請填寫正確的月繳金額、總期數與剩餘期數。';
+                    errorMsg.classList.remove('hidden');
+                    return;
+                }
+                errorMsg.classList.add('hidden');
+
+                let schedule = [];
+                for(let i=0; i<remainingMonthsExt; i++) {
+                    schedule.push(monthlyAmount);
+                }
+
+                record.amount = monthlyAmount * totalMonthsExt; 
+                record.months = totalMonthsExt;
+                record.remainingMonths = remainingMonthsExt;
+                record.periodOffset = totalMonthsExt - remainingMonthsExt;
+                record.totalPaid = monthlyAmount * remainingMonthsExt; 
+                record.monthlyAmount = monthlyAmount;
+                record.schedule = schedule;
+            }
+
+            // --- 儲存與同步邏輯 ---
+            // 1. 寫入本機 LocalStorage
+            window.records.push(record);
+            window.records.sort((a, b) => a.startIndex - b.startIndex);
+            saveData();
+            window.render();
+            
+            // 清空輸入框
+            document.getElementById('itemName').value = '';
+            if(window.inputMode === 'new') document.getElementById('amount').value = '';
+            else document.getElementById('monthlyAmount').value = '';
+
+            // 2. 背景同步至 Google 試算表
+            const btnAdd = document.getElementById('btnAdd');
+            const originalText = btnAdd.innerHTML;
+            btnAdd.innerHTML = "紀錄中... (背景同步至試算表)";
+            
+            fetch(GOOGLE_SHEET_URL, {
+                method: "POST",
+                mode: "no-cors", // 使用 no-cors 避免瀏覽器跨網域阻擋，資料依然能成功寫入 Apps Script
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(record)
+            }).then(() => {
+                console.log("觸發 Google 試算表寫入");
+            }).catch(error => {
+                console.error("同步至試算表失敗:", error);
+            }).finally(() => {
+                setTimeout(() => { btnAdd.innerHTML = originalText; }, 800);
+            });
+        };
+
+        // 3. 刪除紀錄 (僅刪除本機)
+        window.deleteRecord = function(id) {
+            if (!confirm("確定要刪除這筆紀錄嗎？\n\n(提示：這會刪除您畫面上的紀錄，但 Google 試算表內的歷史備份請您手動刪除喔！)")) return;
+            window.records = window.records.filter(r => r.id !== id);
+            saveData();
+            window.render();
+        };
+
+        // 數字格式化與日期輔助函式
+        const formatNumber = (num) => Math.round(num).toLocaleString('zh-TW');
+        const dateToIndex = (yyyy_mm) => {
+            if (!yyyy_mm) return 0;
+            const [year, month] = yyyy_mm.split('-').map(Number);
+            return year * 12 + month;
+        };
+        const indexToDateStr = (index) => {
+            const year = Math.floor((index - 1) / 12);
+            const month = ((index - 1) % 12) + 1;
+            return `${year}年 ${month}月`;
+        };
+
+        // 模式切換
+        window.setMode = function(mode) {
+            window.inputMode = mode;
+            const activeClass = "flex-1 py-2.5 text-sm font-bold rounded-lg bg-white shadow-sm text-indigo-600 transition-all";
+            const inactiveClass = "flex-1 py-2.5 text-sm font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all";
+
+            if (mode === 'new') {
+                document.getElementById('modeNewBtn').className = activeClass;
+                document.getElementById('modeExtBtn').className = inactiveClass;
+                document.getElementById('divAmount').classList.remove('hidden');
+                document.getElementById('divNewDetails').classList.remove('hidden');
+                document.getElementById('divMonthlyAmount').classList.add('hidden');
+                document.getElementById('divExtDetails').classList.add('hidden');
+                document.getElementById('lblStartMonth').innerText = "首期帳單月份";
+            } else {
+                document.getElementById('modeExtBtn').className = activeClass;
+                document.getElementById('modeNewBtn').className = inactiveClass;
+                document.getElementById('divAmount').classList.add('hidden');
+                document.getElementById('divNewDetails').classList.add('hidden');
+                document.getElementById('divMonthlyAmount').classList.remove('hidden');
+                document.getElementById('divExtDetails').classList.remove('hidden');
+                document.getElementById('lblStartMonth').innerText = "本期帳單月份 (即將繳納)";
+            }
+        };
+
+        // 分頁切換
+        window.switchTab = function(tabId) {
+            window.currentTab = tabId;
+            const activeClass = "flex-1 py-3 text-center font-bold text-indigo-600 border-b-2 border-indigo-600 transition-colors";
+            const inactiveClass = "flex-1 py-3 text-center font-bold text-slate-500 border-b-2 border-transparent hover:text-indigo-500 transition-colors";
+
+            if (tabId === 'all') {
+                document.getElementById('tabAll').classList.remove('hidden');
+                document.getElementById('tabQuery').classList.add('hidden');
+                document.getElementById('btnTabAll').className = activeClass;
+                document.getElementById('btnTabQuery').className = inactiveClass;
+            } else {
+                document.getElementById('tabAll').classList.add('hidden');
+                document.getElementById('tabQuery').classList.remove('hidden');
+                document.getElementById('btnTabAll').className = inactiveClass;
+                document.getElementById('btnTabQuery').className = activeClass;
+            }
+        };
+
+        // 渲染查詢區塊
+        window.renderQuery = function() {
+            const queryInput = document.getElementById('queryMonthInput').value;
+            const resultArea = document.getElementById('queryResultArea');
+            
+            if (window.records.length === 0) {
+                resultArea.innerHTML = `<div class="text-slate-500 text-center py-4">請先加入分期紀錄</div>`;
+                return;
+            }
+            if (!queryInput) return;
+
+            const targetIndex = dateToIndex(queryInput);
+            let monthTotal = 0;
+            let detailsHtml = '';
+
+            window.records.forEach(r => {
+                const currentPeriod = targetIndex - r.startIndex + 1; 
+                if (currentPeriod >= 1 && currentPeriod <= r.remainingMonths) {
+                    const amountThisMonth = r.schedule[currentPeriod - 1];
+                    monthTotal += amountThisMonth;
+                    const remainingAfterThis = r.remainingMonths - currentPeriod;
+                    const displayPeriodNumber = currentPeriod + r.periodOffset; 
+                    
+                    detailsHtml += `
+                        <div class="flex justify-between items-center py-3 border-b border-indigo-50 last:border-0">
+                            <div>
+                                <div class="font-bold text-slate-800 text-base">${r.name}</div>
+                                <div class="text-sm mt-0.5">
+                                    <span class="text-slate-500">第 <span class="font-bold text-indigo-600">${displayPeriodNumber}</span> 期 / 共 ${r.months} 期</span>
+                                    <span class="text-slate-300 mx-2">|</span>
+                                    <span class="text-slate-500">剩餘 <span class="font-bold text-rose-500">${remainingAfterThis}</span> 期未繳</span>
+                                </div>
+                            </div>
+                            <div class="font-bold text-slate-800 text-lg">$${formatNumber(amountThisMonth)}</div>
+                        </div>
+                    `;
+                }
+            });
+
+            if (monthTotal === 0) {
+                resultArea.innerHTML = `
+                    <div class="text-center py-6 text-slate-500 bg-white rounded-xl shadow-sm border border-indigo-50">
+                        此月份目前沒有需要繳納的分期項目 🎉
+                    </div>
+                `;
+            } else {
+                resultArea.innerHTML = `
+                    <div class="bg-white rounded-xl p-5 shadow-sm border border-indigo-50 mb-3 flex justify-between items-center">
+                        <div class="text-slate-500 font-medium">該月應繳總額</div>
+                        <div class="text-3xl font-bold text-indigo-600">$${formatNumber(monthTotal)}</div>
+                    </div>
+                    <div class="bg-white rounded-xl px-5 py-2 shadow-sm border border-indigo-50">
+                        ${detailsHtml}
+                    </div>
+                `;
+            }
+        };
+
+        // 渲染主畫面
+        window.render = function() {
+            const resultArea = document.getElementById('resultArea');
+            if (window.records.length === 0) {
+                resultArea.classList.add('hidden');
+                return;
+            }
+            
+            resultArea.classList.remove('hidden');
+
+            const recordsList = document.getElementById('recordsList');
+            recordsList.innerHTML = window.records.map(r => {
+                const infoText = r.mode === 'new' 
+                    ? `總額 $${formatNumber(r.amount)} / 分 ${r.months} 期 / 首期: ${r.startMonth}`
+                    : `月繳 $${formatNumber(r.monthlyAmount)} / 剩 ${r.remainingMonths} 期 (共${r.months}期) / 本期: ${r.startMonth}`;
+                
+                const totalTextLabel = r.mode === 'new' ? '總計' : '剩餘';
+
+                return `
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm gap-2">
+                    <div>
+                        <div class="font-bold text-slate-800">${r.name}</div>
+                        <div class="text-xs text-slate-500 mt-1">${infoText}</div>
+                    </div>
+                    <div class="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+                        <div class="font-bold text-indigo-600">${totalTextLabel} $${formatNumber(r.totalPaid)}</div>
+                        <button onclick="deleteRecord('${r.id}')" class="text-red-400 hover:text-red-600 p-1.5 rounded transition-colors bg-red-50 hover:bg-red-100" title="刪除此紀錄">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+
+            window.renderQuery();
+
+            let globalMinIndex = Infinity;
+            let globalMaxIndex = -Infinity;
+            let grandTotal = 0;
+            
+            window.records.forEach(r => {
+                if (r.startIndex < globalMinIndex) globalMinIndex = r.startIndex;
+                const endIndex = r.startIndex + r.remainingMonths - 1;
+                if (endIndex > globalMaxIndex) globalMaxIndex = endIndex;
+                grandTotal += r.totalPaid;
+            });
+
+            document.getElementById('resTotal').innerText = formatNumber(grandTotal);
+            const totalMonthsSpan = globalMaxIndex !== -Infinity ? (globalMaxIndex - globalMinIndex + 1) : 0;
+            document.getElementById('resMaxMonths').innerText = totalMonthsSpan;
+
+            const scheduleBody = document.getElementById('scheduleBody');
+            let scheduleHTML = '';
+
+            for (let currentIdx = globalMinIndex; currentIdx <= globalMaxIndex; currentIdx++) {
+                let monthTotal = 0;
+                let details = [];
+
+                window.records.forEach(r => {
+                    const currentPeriod = currentIdx - r.startIndex + 1;
+                    if (currentPeriod >= 1 && currentPeriod <= r.remainingMonths) {
+                        const amountThisMonth = r.schedule[currentPeriod - 1];
+                        monthTotal += amountThisMonth;
+                        const displayPeriodNumber = currentPeriod + r.periodOffset;
+                        details.push(`<span class="text-slate-600 font-medium">${r.name}:</span> $${formatNumber(amountThisMonth)} <span class="text-xs text-slate-400">(${displayPeriodNumber}/${r.months})</span>`);
+                    }
+                });
+
+                if (monthTotal > 0) {
+                    scheduleHTML += `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-4 py-4 text-center text-slate-700 font-bold tracking-wide">${indexToDateStr(currentIdx)}</td>
+                            <td class="px-4 py-4 font-bold text-indigo-600 text-lg">$${formatNumber(monthTotal)}</td>
+                            <td class="px-4 py-4 text-slate-500 text-xs text-left leading-relaxed">
+                                ${details.join('<br>')}
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+
+            scheduleBody.innerHTML = scheduleHTML;
+        };
+
+        // 啟動與事件監聽
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            const currentMonthStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
+            document.getElementById('startMonth').value = currentMonthStr;
+            document.getElementById('queryMonthInput').value = currentMonthStr;
+            
+            // 初始化載入本機資料
+            loadData();
+        });
+
+        document.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                if(e.target.tagName !== 'BUTTON') {
+                     window.addRecord();
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>
