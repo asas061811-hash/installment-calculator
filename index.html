@@ -34,7 +34,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
                 信用卡分期雲端計算器
             </h1>
-            <p class="text-indigo-200 mt-1 text-sm">新增多筆分期紀錄，自動計算每月應繳總額</p>
+            <p class="text-indigo-200 mt-1 text-sm">新增多筆分期紀錄，自動隱藏已繳清項目</p>
         </div>
 
         <div class="p-6 md:p-8 space-y-5">
@@ -96,8 +96,8 @@
                         <input type="number" id="totalMonthsExt" placeholder="例如: 12" value="12" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-lg font-medium">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-1" for="remainingMonthsExt">剩餘期數 (月)</label>
-                        <input type="number" id="remainingMonthsExt" placeholder="例如: 6" value="6" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-lg font-medium">
+                        <label class="block text-sm font-semibold text-slate-700 mb-1" for="paidMonthsExt">已繳納期數 (月)</label>
+                        <input type="number" id="paidMonthsExt" placeholder="例如: 6" value="6" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-lg font-medium">
                     </div>
                 </div>
             </div>
@@ -111,7 +111,7 @@
         <div id="resultArea" class="hidden border-t border-slate-100 bg-slate-50 p-6 md:p-8">
             <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                已記錄的消費
+                進行中的分期消費
             </h3>
             
             <div id="recordsList" class="space-y-3 mb-6">
@@ -224,7 +224,7 @@
 
             const startIndex = dateToIndex(startMonthStr);
             let record = {
-                id: Date.now().toString() + Math.floor(Math.random() * 1000), // 產生高隨機度的唯一 ID
+                id: Date.now().toString() + Math.floor(Math.random() * 1000), 
                 name: name,
                 startMonth: startMonthStr,
                 startIndex: startIndex,
@@ -288,19 +288,22 @@
                 record.schedule = schedule;
 
             } else {
+                // 補登舊紀錄邏輯更新：使用「已繳納期數」計算
                 const monthlyAmount = parseFloat(document.getElementById('monthlyAmount').value);
                 const totalMonthsExt = parseInt(document.getElementById('totalMonthsExt').value);
-                const remainingMonthsExt = parseInt(document.getElementById('remainingMonthsExt').value);
+                const paidMonthsExt = parseInt(document.getElementById('paidMonthsExt').value);
 
                 if (!monthlyAmount || isNaN(monthlyAmount) || monthlyAmount <= 0 || 
                     !totalMonthsExt || isNaN(totalMonthsExt) || totalMonthsExt <= 0 || 
-                    !remainingMonthsExt || isNaN(remainingMonthsExt) || remainingMonthsExt <= 0 || 
-                    remainingMonthsExt > totalMonthsExt) {
-                    errorMsg.innerText = '請填寫正確的月繳金額、總期數與剩餘期數。';
+                    isNaN(paidMonthsExt) || paidMonthsExt < 0 || paidMonthsExt >= totalMonthsExt) {
+                    errorMsg.innerText = '請填寫正確的月繳金額、總期數與已繳期數 (已繳期數必須小於總期數)。';
                     errorMsg.classList.remove('hidden');
                     return;
                 }
                 errorMsg.classList.add('hidden');
+
+                // 計算剩餘期數
+                const remainingMonthsExt = totalMonthsExt - paidMonthsExt;
 
                 let schedule = [];
                 for(let i=0; i<remainingMonthsExt; i++) {
@@ -310,7 +313,7 @@
                 record.amount = monthlyAmount * totalMonthsExt; 
                 record.months = totalMonthsExt;
                 record.remainingMonths = remainingMonthsExt;
-                record.periodOffset = totalMonthsExt - remainingMonthsExt;
+                record.periodOffset = paidMonthsExt; // 將已繳納期數作為顯示的位移偏移量
                 record.totalPaid = monthlyAmount * remainingMonthsExt; 
                 record.monthlyAmount = monthlyAmount;
                 record.schedule = schedule;
@@ -485,55 +488,78 @@
             
             resultArea.classList.remove('hidden');
 
-            const recordsList = document.getElementById('recordsList');
-            recordsList.innerHTML = window.records.map(r => {
-                const infoText = r.mode === 'new' 
-                    ? `總額 $${formatNumber(r.amount)} / 分 ${r.months} 期 / 首期: ${r.startMonth}`
-                    : `月繳 $${formatNumber(r.monthlyAmount)} / 剩 ${r.remainingMonths} 期 (共${r.months}期) / 本期: ${r.startMonth}`;
-                
-                const totalTextLabel = r.mode === 'new' ? '總計' : '剩餘';
+            // 取得真實世界的當前月份
+            const today = new Date();
+            const currentMonthIndex = today.getFullYear() * 12 + today.getMonth() + 1;
 
-                return `
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm gap-2">
-                    <div>
-                        <div class="font-bold text-slate-800">${r.name}</div>
-                        <div class="text-xs text-slate-500 mt-1">${infoText}</div>
+            // 過濾並動態計算「未繳清」的項目
+            const activeRecords = window.records.map(r => {
+                let dynRemainingAmount = 0;
+                let dynRemainingMonths = 0;
+                
+                // 只加總「本月」以及「未來」尚未繳納的期數
+                for (let i = 0; i < r.remainingMonths; i++) {
+                    if ((r.startIndex + i) >= currentMonthIndex) {
+                        dynRemainingAmount += r.schedule[i];
+                        dynRemainingMonths++;
+                    }
+                }
+                return { ...r, dynRemainingAmount, dynRemainingMonths };
+            }).filter(r => r.dynRemainingMonths > 0); // 剔除已經完全繳清的項目
+
+            const recordsList = document.getElementById('recordsList');
+            
+            if (activeRecords.length === 0) {
+                 recordsList.innerHTML = `<div class="text-slate-400 text-center py-4 text-sm bg-white rounded-lg border border-slate-200 shadow-sm">太棒了！目前沒有進行中的分期卡費 🎉</div>`;
+            } else {
+                recordsList.innerHTML = activeRecords.map(r => {
+                    const infoText = r.mode === 'new' 
+                        ? `原總額 $${formatNumber(r.amount)} / 分 ${r.months} 期`
+                        : `月繳 $${formatNumber(r.monthlyAmount)} / 已繳 ${r.periodOffset} 期 (共${r.months}期)`;
+
+                    return `
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm gap-2">
+                        <div>
+                            <div class="font-bold text-slate-800">${r.name}</div>
+                            <div class="text-xs text-slate-500 mt-1">${infoText}</div>
+                        </div>
+                        <div class="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+                            <div class="font-bold text-indigo-600">剩餘 $${formatNumber(r.dynRemainingAmount)}</div>
+                            <button onclick="deleteRecord('${r.id}')" class="text-red-400 hover:text-red-600 p-1.5 rounded transition-colors bg-red-50 hover:bg-red-100" title="刪除此紀錄">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                            </button>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
-                        <div class="font-bold text-indigo-600">${totalTextLabel} $${formatNumber(r.totalPaid)}</div>
-                        <button onclick="deleteRecord('${r.id}')" class="text-red-400 hover:text-red-600 p-1.5 rounded transition-colors bg-red-50 hover:bg-red-100" title="刪除此紀錄">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                        </button>
-                    </div>
-                </div>
-                `;
-            }).join('');
+                    `;
+                }).join('');
+            }
 
             window.renderQuery();
 
-            let globalMinIndex = Infinity;
-            let globalMaxIndex = -Infinity;
+            // 所有月份總表 (強制從當下真實月份開始顯示)
+            let globalMinIndex = currentMonthIndex; 
+            let globalMaxIndex = currentMonthIndex - 1; // 預設防呆
             let grandTotal = 0;
             
-            window.records.forEach(r => {
-                if (r.startIndex < globalMinIndex) globalMinIndex = r.startIndex;
+            activeRecords.forEach(r => {
                 const endIndex = r.startIndex + r.remainingMonths - 1;
                 if (endIndex > globalMaxIndex) globalMaxIndex = endIndex;
-                grandTotal += r.totalPaid;
+                grandTotal += r.dynRemainingAmount;
             });
 
             document.getElementById('resTotal').innerText = formatNumber(grandTotal);
-            const totalMonthsSpan = globalMaxIndex !== -Infinity ? (globalMaxIndex - globalMinIndex + 1) : 0;
+            const totalMonthsSpan = globalMaxIndex >= currentMonthIndex ? (globalMaxIndex - currentMonthIndex + 1) : 0;
             document.getElementById('resMaxMonths').innerText = totalMonthsSpan;
 
             const scheduleBody = document.getElementById('scheduleBody');
             let scheduleHTML = '';
 
+            // 依序印出未來的月份
             for (let currentIdx = globalMinIndex; currentIdx <= globalMaxIndex; currentIdx++) {
                 let monthTotal = 0;
                 let details = [];
 
-                window.records.forEach(r => {
+                activeRecords.forEach(r => {
                     const currentPeriod = currentIdx - r.startIndex + 1;
                     if (currentPeriod >= 1 && currentPeriod <= r.remainingMonths) {
                         const amountThisMonth = r.schedule[currentPeriod - 1];
@@ -556,6 +582,9 @@
                 }
             }
 
+            if (scheduleHTML === '') {
+                scheduleHTML = `<tr><td colspan="3" class="px-4 py-8 text-center text-slate-400">目前沒有未來的待繳行程表</td></tr>`;
+            }
             scheduleBody.innerHTML = scheduleHTML;
         };
 
