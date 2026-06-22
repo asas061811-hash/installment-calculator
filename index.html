@@ -6,6 +6,7 @@
     <title>信用卡分期計算器</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* 隱藏數字輸入框的上下箭頭 */
         input[type="number"]::-webkit-inner-spin-button,
         input[type="number"]::-webkit-outer-spin-button {
             -webkit-appearance: none;
@@ -28,7 +29,6 @@
 <body class="bg-slate-100 min-h-screen text-slate-800 font-sans p-4 md:p-8 flex items-start justify-center">
 
     <div class="max-w-3xl w-full bg-white rounded-2xl shadow-xl overflow-hidden mt-2 md:mt-8 mb-10">
-        <!-- 頂部標題 -->
         <div class="bg-indigo-600 p-6 text-white text-center relative">
             <h1 class="text-2xl font-bold flex items-center justify-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
@@ -38,14 +38,11 @@
         </div>
 
         <div class="p-6 md:p-8 space-y-5">
-            <!-- 錯誤提示區塊 -->
             <div id="errorMsg" class="hidden bg-red-50 text-red-600 p-3 rounded-lg text-sm font-medium border border-red-200">
                 請填寫正確的金額與期數。
             </div>
 
-            <!-- 輸入表單 -->
             <div class="space-y-4">
-                <!-- 選擇記錄模式 -->
                 <div class="flex bg-slate-100 p-1.5 rounded-xl mb-2">
                     <button id="modeNewBtn" onclick="setMode('new')" class="flex-1 py-2.5 text-sm font-bold rounded-lg bg-white shadow-sm text-indigo-600 transition-all">輸入總金額 (完整分期)</button>
                     <button id="modeExtBtn" onclick="setMode('existing')" class="flex-1 py-2.5 text-sm font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all">輸入月繳金 (補登舊紀錄)</button>
@@ -62,7 +59,6 @@
                         <input type="month" id="startMonth" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-lg font-medium">
                     </div>
                     
-                    <!-- 模式1: 輸入總金額 -->
                     <div id="divAmount">
                         <label class="block text-sm font-semibold text-slate-700 mb-1" for="amount">刷卡總金額 (元)</label>
                         <div class="relative">
@@ -71,7 +67,6 @@
                         </div>
                     </div>
 
-                    <!-- 模式2: 輸入月繳金 -->
                     <div id="divMonthlyAmount" class="hidden">
                         <label class="block text-sm font-semibold text-slate-700 mb-1" for="monthlyAmount">每月繳款金額 (元)</label>
                         <div class="relative">
@@ -81,7 +76,6 @@
                     </div>
                 </div>
 
-                <!-- 模式1的細節 -->
                 <div class="grid grid-cols-2 gap-4" id="divNewDetails">
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-1" for="months">分期期數 (月)</label>
@@ -96,7 +90,6 @@
                     </div>
                 </div>
 
-                <!-- 模式2的細節 -->
                 <div class="grid grid-cols-2 gap-4 hidden" id="divExtDetails">
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-1" for="totalMonthsExt">總期數 (月)</label>
@@ -109,26 +102,21 @@
                 </div>
             </div>
 
-            <!-- 計算按鈕 -->
             <button onclick="addRecord()" id="btnAdd" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition-colors shadow-lg shadow-indigo-200 flex justify-center items-center gap-2 text-lg">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                 加入累計清單
             </button>
         </div>
 
-        <!-- 結果顯示區塊 -->
         <div id="resultArea" class="hidden border-t border-slate-100 bg-slate-50 p-6 md:p-8">
             <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                已記錄的消費 (雲端同步)
+                已記錄的消費
             </h3>
             
-            <!-- 紀錄清單 -->
             <div id="recordsList" class="space-y-3 mb-6">
-                <!-- JS 生成 -->
-            </div>
+                </div>
 
-            <!-- 分頁導覽列 -->
             <div class="flex border-b border-slate-200 mb-6">
                 <button id="btnTabAll" onclick="switchTab('all')" class="flex-1 py-3 text-center font-bold text-indigo-600 border-b-2 border-indigo-600 transition-colors">
                     所有月份總表
@@ -138,9 +126,7 @@
                 </button>
             </div>
 
-            <!-- 分頁 1：所有月份累計 -->
             <div id="tabAll" class="space-y-6">
-                <!-- 摘要卡片 -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
                         <div class="text-xs text-slate-500 font-medium mb-1">剩餘待繳總額 (累計)</div>
@@ -152,7 +138,6 @@
                     </div>
                 </div>
 
-                <!-- 累計明細表 -->
                 <div class="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm max-h-[400px] overflow-y-auto">
                     <table class="w-full text-sm text-right">
                         <thead class="text-xs text-slate-500 uppercase bg-slate-100 sticky top-0">
@@ -163,13 +148,11 @@
                             </tr>
                         </thead>
                         <tbody id="scheduleBody" class="divide-y divide-slate-100">
-                            <!-- 明細內容由 JS 生成 -->
-                        </tbody>
+                            </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- 分頁 2：單月查詢區塊 -->
             <div id="tabQuery" class="hidden p-5 md:p-6 bg-indigo-50 border border-indigo-100 rounded-xl shadow-sm">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 border-b border-indigo-100 pb-4">
                     <h4 class="font-bold text-indigo-900 flex items-center gap-2 text-lg">
@@ -179,32 +162,49 @@
                     <input type="month" id="queryMonthInput" onchange="renderQuery()" class="px-4 py-2 bg-white border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-slate-700 shadow-sm cursor-pointer">
                 </div>
                 <div id="queryResultArea">
-                    <!-- 由 JS 渲染查詢結果 -->
-                </div>
+                    </div>
             </div>
         </div>
     </div>
 
     <script>
-        // 您專屬的 Google Sheets Web App URL
+        // 您的專屬 Google Sheets 網頁應用程式網址
         const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyAGmCIago7zpsVHp9hneB4NiYRYgpI-aLru9hb8RWmKaooE3FvSzXqZKYllkkbymD4-Q/exec";
 
-        // 全域變數
         window.records = [];
         window.currentTab = 'all';
         window.inputMode = 'new'; 
 
-        // 1. 初始化載入 LocalStorage 資料
-        function loadData() {
-            const saved = localStorage.getItem('installment_records');
-            if (saved) {
-                window.records = JSON.parse(saved);
-                window.records.sort((a, b) => a.startIndex - b.startIndex);
+        // 1. 初始化：從 Google 試算表拉取資料 (雙向同步核心)
+        async function loadData() {
+            const btnAdd = document.getElementById('btnAdd');
+            const originalText = btnAdd.innerHTML;
+            btnAdd.innerHTML = "正在從雲端同步資料...";
+            btnAdd.disabled = true;
+
+            try {
+                const response = await fetch(GOOGLE_SHEET_URL);
+                const data = await response.json();
+                
+                if (data && Array.isArray(data)) {
+                    window.records = data;
+                    window.records.sort((a, b) => a.startIndex - b.startIndex);
+                    saveData(); // 備份到本機，確保離線也能看
+                }
+            } catch (error) {
+                console.error("雲端讀取失敗，使用本機紀錄:", error);
+                const saved = localStorage.getItem('installment_records');
+                if (saved) {
+                    window.records = JSON.parse(saved);
+                    window.records.sort((a, b) => a.startIndex - b.startIndex);
+                }
+            } finally {
+                window.render();
+                btnAdd.innerHTML = originalText;
+                btnAdd.disabled = false;
             }
-            window.render();
         }
 
-        // 儲存至 LocalStorage
         function saveData() {
             localStorage.setItem('installment_records', JSON.stringify(window.records));
         }
@@ -224,12 +224,12 @@
 
             const startIndex = dateToIndex(startMonthStr);
             let record = {
-                id: Date.now().toString(), // 產生唯一 ID
+                id: Date.now().toString() + Math.floor(Math.random() * 1000), // 產生高隨機度的唯一 ID
                 name: name,
                 startMonth: startMonthStr,
                 startIndex: startIndex,
                 mode: window.inputMode,
-                createdAt: new Date().toLocaleString() // 加上時間字串方便閱讀
+                createdAt: new Date().toLocaleString()
             };
 
             if (window.inputMode === 'new') {
@@ -316,8 +316,7 @@
                 record.schedule = schedule;
             }
 
-            // --- 儲存與同步邏輯 ---
-            // 1. 寫入本機 LocalStorage
+            // --- 寫入本機畫面 ---
             window.records.push(record);
             window.records.sort((a, b) => a.startIndex - b.startIndex);
             saveData();
@@ -328,31 +327,37 @@
             if(window.inputMode === 'new') document.getElementById('amount').value = '';
             else document.getElementById('monthlyAmount').value = '';
 
-            // 2. 背景同步至 Google 試算表
+            // --- 發送至雲端 ---
             const btnAdd = document.getElementById('btnAdd');
             const originalText = btnAdd.innerHTML;
-            btnAdd.innerHTML = "紀錄中... (背景同步至試算表)";
+            btnAdd.innerHTML = "雲端同步中...";
             
             fetch(GOOGLE_SHEET_URL, {
                 method: "POST",
-                mode: "no-cors", // 使用 no-cors 避免瀏覽器跨網域阻擋，資料依然能成功寫入 Apps Script
+                mode: "no-cors", 
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(record)
-            }).then(() => {
-                console.log("觸發 Google 試算表寫入");
-            }).catch(error => {
-                console.error("同步至試算表失敗:", error);
             }).finally(() => {
                 setTimeout(() => { btnAdd.innerHTML = originalText; }, 800);
             });
         };
 
-        // 3. 刪除紀錄 (僅刪除本機)
+        // 3. 刪除紀錄 (同步刪除雲端)
         window.deleteRecord = function(id) {
-            if (!confirm("確定要刪除這筆紀錄嗎？\n\n(提示：這會刪除您畫面上的紀錄，但 Google 試算表內的歷史備份請您手動刪除喔！)")) return;
+            if (!confirm("確定要刪除這筆紀錄嗎？\n(這會一併刪除雲端試算表上的資料！)")) return;
+            
+            // 移除畫面資料
             window.records = window.records.filter(r => r.id !== id);
             saveData();
             window.render();
+
+            // 發送刪除指令到 Google Apps Script
+            fetch(GOOGLE_SHEET_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "delete", id: id })
+            });
         };
 
         // 數字格式化與日期輔助函式
@@ -561,7 +566,7 @@
             document.getElementById('startMonth').value = currentMonthStr;
             document.getElementById('queryMonthInput').value = currentMonthStr;
             
-            // 初始化載入本機資料
+            // 網頁載入時，直接去雲端抓資料！
             loadData();
         });
 
